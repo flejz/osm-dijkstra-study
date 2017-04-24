@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Geocoding service</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="floating-panel">
+      <input id="address" type="textbox" value="São José dos Campos - SP">
+      <input id="submit" type="button" value="Geocode">
+    </div>
+    <div id="map"></div>
+    <script>
+
+      var map, geocoder, marker;
+
+      function setMapOnAll(map) {
+        for (var i = 0; i < markers.length; i++) {
+          markers[i].setMap(map);
+        }
+      }
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 14,
+          center: {lat: -23.223701, lng: -45.900907399999994}
+        });
+        geocoder = new google.maps.Geocoder();
+
+        map.addListener('click', function(location) {
+          placeMarker(location.latLng)
+        })
+
+        document.getElementById('submit').addEventListener('click', function() {
+          geocodeAddress();
+        });
+      }
+
+      function geocodeAddress() {
+        var address = document.getElementById('address').value;
+        geocoder.geocode({'address': address}, function(results, status) {
+          if (status === 'OK') {
+            var location = results[0].geometry.location
+            map.setCenter(location);
+            placeMarker(location);
+          } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+          }
+        });
+      }
+
+      function placeMarker(location) {
+        if (!!marker) {
+          marker.setMap(null)
+        }
+
+        marker = new google.maps.Marker({
+          map: map,
+          position: location
+        });
+        console.log('lat=', location.lat() + '&lon=' + location.lng());
+      }
+
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?callback=initMap">
+    </script>
+  </body>
+</html>
