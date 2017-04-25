@@ -8,7 +8,7 @@ import Promise from 'bluebird'
 import req from 'request-promise'
 import fs from 'fs'
 import urls from '../src/urls'
-import { featuresToPoints, fetchVertexes, getClosestVertex } from '../src/optimizer/vertex'
+import { featuresToPoints, fetchVertexesByReference, getClosestVertex } from '../src/optimizer/vertex'
 
 function fetchHospitalClosestVertex() {
 
@@ -24,7 +24,7 @@ function fetchHospitalClosestVertex() {
 
         return Promise.all(
           featuresToPoints(result, 'NAME').map(point => {
-            return fetchVertexes(point, 5000)
+            return fetchVertexesByReference(point, 5000)
               .then(getClosestVertex.bind(null, point))
               .then(closest => Promise.resolve({ vertex: closest , hospital: point}))
           })

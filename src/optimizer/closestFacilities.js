@@ -4,8 +4,8 @@ import req from 'request-promise'
 import Graph from 'node-dijkstra'
 import urls from '../urls'
 import hospitalMap from '../data/hospitalMap'
-import { closest } from '../lib/gis'
-import { featuresToPoints, fetchVertexes, getClosestVertex } from './vertex'
+import { fetchEdges } from './edge'
+import { featuresToPoints, fetchVertexesByReference, fetchVertexesByExpression, getClosestVertex } from './vertex'
 
 function findClosestFacility(graph, origin) {
 
@@ -15,18 +15,34 @@ function findClosestFacility(graph, origin) {
 
       return { destination: destination, route: route.path(origin.name, destination.vertex.name, { cost: true }) }
     })
-    .reduce((previousValue, currentValue, index) => {
+    .reduce((prev, curr, index) => {
 
-      return previousValue.route.cost < currentValue.route.cost || !currentValue.route.path ? previousValue : currentValue
+      return prev.route.cost < curr.route.cost || !curr.route.path ? prev : curr
     })
 
   return Promise.resolve(closest)
 }
 
+function prepareExpression(closest) {
+
+  return Promise.resolve(closest.route.path.reduce((prev, curr, index, self) => {
+    if (index == 1) {
+      return `Name in ('${prev}','${curr}'`
+    }
+    else if (index == self.length - 1) {
+      return `${prev},'${curr}')`
+    }
+    return `${prev},'${curr}'`
+  }))
+}
+
 export default function(graph) {
   return point => {
-        return fetchVertexes(point, 200)
+        return fetchVertexesByReference(point, 200)
           .then(getClosestVertex.bind(this, point))
           .then(findClosestFacility.bind(this, graph))
+          .then(prepareExpression)
+          .then(fetchVertexesByExpression)
+          .then(fetchEdges)
   }
 }

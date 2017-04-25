@@ -15,16 +15,28 @@ export function featuresToPoints(result, attribute='Name') {
   })
 }
 
-export function fetchVertexes(point, bufferDistance=500) {
+export function fetchVertexesByReference(point, bufferDistance=500) {
 
   let params = {
-    geometry:`${point.lon},${point.lat}`,
-    geometryType:'esriGeometryPoint',
-    spatialRel:'esriSpatialRelIntersects',
-    resultType:'standard',
-    distance:bufferDistance,
-    units:'esriSRUnit_Meter',
-    f:'json'
+    geometry: `${point.lon},${point.lat}`,
+    geometryType: 'esriGeometryPoint',
+    spatialRel: 'esriSpatialRelIntersects',
+    resultType: 'standard',
+    distance: bufferDistance,
+    units: 'esriSRUnit_Meter',
+    f: 'json'
+  }
+  const url = `${urls.get('vertex')}/query?${qs.stringify(params)}`
+
+  return req(url)
+}
+
+export function fetchVertexesByExpression(expression, outFields='OBJECTID') {
+
+  let params = {
+    where: expression,
+    outFields: outFields,
+    f: 'json'
   }
   const url = `${urls.get('vertex')}/query?${qs.stringify(params)}`
 
