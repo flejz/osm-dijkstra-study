@@ -1,18 +1,6 @@
 import { Router } from 'express';
+import { benchmark } from '../lib/util'
 import Optimizer from '../optimizer/closestFacilities'
-
-const timer = function(name) {
-    var start = new Date();
-    return {
-        stop: function() {
-            var end  = new Date();
-            var time = end.getTime() - start.getTime();
-            console.log('Timer:', name, 'finished in', time, 'ms');
-        }
-    }
-};
-
-let bench = null
 
 export default (timeGraph, distanceGraph) => {
 
@@ -23,12 +11,16 @@ export default (timeGraph, distanceGraph) => {
 
 	api.get('/fastest', (req, res) => {
 
+		if (!req.query || !req.query.lat || !req.query.lon) {
+			return res.status(501).json({ error: 'Missing parameters' })
+		}
+
 		const point = {
 			lat: parseFloat(req.query.lat),
 			lon: parseFloat(req.query.lon),
 		}
 
-		bench = timer('fastest')
+		const bench = benchmark('Fastest')
 
 		fastest(point)
 			.then(result => {
