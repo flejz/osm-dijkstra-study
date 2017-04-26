@@ -5,7 +5,6 @@ import Graph from 'node-dijkstra'
 import Terraformer from 'terraformer'
 import urls from '../urls'
 import hospitalMap from '../data/hospitalMap'
-import { distance } from '../lib/gis'
 import { fetchEdges } from './edge'
 import { featuresToPoints, fetchVertexesByReference, fetchVertexesByExpression, getClosestVertex } from './vertex'
 
@@ -54,80 +53,67 @@ function generateRoute(interop) {
   const vertexes = interop.destination.route.vertexes
   const edges = interop.destination.route.edges
 
-  console.log(`POINTS NAMES LENGTH: ${path.length}`);
-  console.log(`POINTS FEATURES LENGTH: ${vertexes.length}`);
-
   function getCoordinateFromVertex(name) {
-    let point = vertexes.filter(feature => feature.attributes.Name == name)
-    console.log(`>>>>>>>>>>>> PT : ${name}`);
-    console.log(point);
-    point = point[0]
+    const point = vertexes.filter(feature => feature.attributes.Name == name)[0]
     return [point.geometry.x, point.geometry.y]
   }
 
   let iniXY = getCoordinateFromVertex(path[0]),
     endXY = getCoordinateFromVertex(path[1])
 
-  function compareCoordinates([lon1, lat1], [lon2, lat2]) {
+  let line = edges.filter(edge => {
 
-    const length = distance([lat1, lon1], [lat2, lon2])
-
-    if (length < 0.1) {
-      console.log('========================')
-      console.log('DISTANCE');
-      console.log(distance);
-      console.log('COORDINATOR LON')
-      console.log(lon1);
-      console.log(lon2);
-      console.log('COORDINATOR LAT')
-      console.log(lat1);
-      console.log(lat2);
-      console.log('========================')
+    if (!edge.geometry.paths || !edge.geometry.paths[0]) {
+      return
     }
 
-    return length < 0.1
-  }
-
-  let teste = edges.filter(edge => {
-
-    if (!edge.geometry.paths) {
-      return false
+    let hasIni = false
+    for (let coordinate of edge.geometry.paths[0]) {
+      if (Terraformer.Tools.coordinatesEqual(coordinate, iniXY)) {
+        console.log('ACHOU INI');
+        console.log(iniXY);
+        console.log(coordinate);
+        hasIni = true
+        break
+      }
     }
 
-    console.log(`>>>>>>>>>>>>> >>>>>>>>>>>>> edge: ${edge.attributes.ST_ID}}`);
-
-    let hasIni = false, hasEnd = false
-
-    edge.geometry.paths[0].forEach(coordinate => {
-
-      if (!hasIni) {
-        hasIni =  compareCoordinates(coordinate, iniXY)
-
-        if (hasIni) {
-          console.log('ACHOU INI');
-          console.log(edge.attributes);
-          console.log(iniXY);
-          console.log(coordinate);
-        }
+    let hasEnd = false
+    for (let coordinate of edge.geometry.paths[0]) {
+      if (Terraformer.Tools.coordinatesEqual(coordinate, endXY)) {
+        console.log('ACHOU END');
+        console.log(endXY);
+        console.log(coordinate);
+        hasEnd = true
+        break
       }
-
-      if (!hasEnd) {
-        hasEnd =  compareCoordinates(coordinate, endXY)
-        if (hasEnd) {
-          console.log('ACHOU END');
-          console.log(edge.attributes);
-          console.log(endXY);
-          console.log(coordinate);
-        }
-      }
-    })
+    }
 
     return hasIni && hasEnd
+
+    // .filter(coordinate => {
+    //   let validation =  Terraformer.Tools.coordinatesEqual(coordinate, iniXY)
+    //
+    //   if (validation) {
+    //     console.log('ACHOU INI');
+    //     console.log(iniXY);
+    //     console.log(coordinate);
+    //   }
+    //
+    //   validation =  Terraformer.Tools.coordinatesEqual(coordinate, endXY)
+    //
+    //   if (validation) {
+    //     console.log('ACHOU END');
+    //     console.log(endXY);
+    //     console.log(coordinate);
+    //   }
+    // })
+
   })
 
-  console.log(teste);
   console.log(iniXY);
   console.log(endXY);
+  console.log(line);
 
 }
 

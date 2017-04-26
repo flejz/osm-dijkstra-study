@@ -19,7 +19,7 @@ Number.prototype.toRadians = toRadians
  */
 export function distance([lat1, lon1], [lat2, lon2]) {
 
-	const R = 6371e3 // metres
+	const R = 6371 // metres
 	const φ1 = lat1.toRadians()
 	const φ2 = lat2.toRadians()
 	const Δφ = (lat2-lat1).toRadians()

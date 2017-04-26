@@ -6,7 +6,7 @@ import {closest} from '../lib/gis'
 
 export function featuresToPoints(result, attribute='Name') {
 
-  return result.features.map(feature => {
+  return JSON.parse(result).features.map(feature => {
     return {
       name: feature.attributes[attribute],
       lat: feature.geometry.y,
@@ -17,8 +17,6 @@ export function featuresToPoints(result, attribute='Name') {
 
 export function fetchVertexesByReference(point, bufferDistance=500) {
 
-  console.log('fetch vertex');
-
   let params = {
     geometry: `${point.lon},${point.lat}`,
     geometryType: 'esriGeometryPoint',
@@ -28,39 +26,26 @@ export function fetchVertexesByReference(point, bufferDistance=500) {
     units: 'esriSRUnit_Meter',
     f: 'json'
   }
+  const url = `${urls.get('vertex')}/query?${qs.stringify(params)}`
 
-  return req({
-    uri: `${urls.get('vertex')}/query?${qs.stringify(params)}`,
-    json: true
-  })
+  return req(url)
 }
 
-export function fetchVertexesByExpression(interop, outFields='Name') {
+export function fetchVertexesByExpression(expression, outFields='OBJECTID') {
 
-  console.log('fetch expression');
+  console.log(`Expression: ${expression}`);
 
   let params = {
-    where: interop.expression,
+    where: expression,
     outFields: outFields,
     f: 'json'
   }
+  const url = `${urls.get('vertex')}/query?${qs.stringify(params)}`
 
-  return req({
-    uri: `${urls.get('vertex')}/query?${qs.stringify(params)}`,
-    json: true
-  }).then(res => {
-
-    interop.destination.route.vertexes = res.features
-    return Promise.resolve(interop)
-  }).catch(Promise.reject)
+  return req(url)
 }
 
 export function getClosestVertex(point, result) {
 
-  return Promise.resolve({
-    origin: {
-      point: point,
-      vertex: closest(point, featuresToPoints(result))
-    }
-  })
+  return Promise.resolve(closest(point, featuresToPoints(result)))
 }

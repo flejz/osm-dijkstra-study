@@ -22,12 +22,16 @@ export default (timeGraph, distanceGraph) => {
 
 		const bench = benchmark('Fastest')
 
-		fastest(point)
+		return fastest(point)
 			.then(result => {
-					bench.stop()
-					res.json(result)
+				bench.stop()
+				res.json(result)
 			})
-			.catch(res.json)
+			.catch(err => {
+				console.error(err);
+				bench.stop()
+				res.send(err).status(501)
+			})
 	});
 
 	api.get('/closest', (req, res) => {
