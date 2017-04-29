@@ -1,0 +1,130 @@
+import qs from 'querystring'
+import Promise from 'bluebird'
+import req from 'request-promise'
+import Graph from 'node-dijkstra'
+import Terraformer from 'terraformer'
+import urls from '../urls'
+import hospitalMap from '../data/hospitalMap'
+import { fetchEdges } from './edge'
+import { featuresToPoints, fetchVertexesByReference, fetchVertexesByExpression, getClosestVertex } from './vertex'
+
+function findClosestFacility(graph, interop) {
+
+  console.log('closest facilities');
+
+  const route = new Graph(graph)
+  const destination = hospitalMap
+    .map(destination => {
+
+      return { hospital: destination, route: route.path(interop.origin.vertex.name, destination.vertex.name, { cost: true }) }
+    })
+    .reduce((prev, curr, index) => {
+
+      return prev.route.cost < curr.route.cost || !curr.route.path ? prev : curr
+    })
+
+  interop.destination = destination
+
+  return Promise.resolve(interop)
+}
+
+function prepareExpression(interop) {
+
+  console.log('prepare expression');
+
+  interop.expression = interop.destination.route.path.reduce((prev, curr, index, self) => {
+    if (index == 1) {
+      return `Name in ('${prev}','${curr}'`
+    }
+    else if (index == self.length - 1) {
+      return `${prev},'${curr}')`
+    }
+    return `${prev},'${curr}'`
+  })
+
+  return Promise.resolve(interop)
+}
+
+function generateRoute(interop) {
+
+  console.log('generating route');
+
+  const path = interop.destination.route.path
+  const vertexes = interop.destination.route.vertexes
+  const edges = interop.destination.route.edges
+
+  function getCoordinateFromVertex(name) {
+    const point = vertexes.filter(feature => feature.attributes.Name == name)[0]
+    return [point.geometry.x, point.geometry.y]
+  }
+
+  let iniXY = getCoordinateFromVertex(path[0]),
+    endXY = getCoordinateFromVertex(path[1])
+
+  let line = edges.filter(edge => {
+
+    if (!edge.geometry.paths || !edge.geometry.paths[0]) {
+      return
+    }
+
+    let hasIni = false
+    for (let coordinate of edge.geometry.paths[0]) {
+      if (Terraformer.Tools.coordinatesEqual(coordinate, iniXY)) {
+        console.log('ACHOU INI');
+        console.log(iniXY);
+        console.log(coordinate);
+        hasIni = true
+        break
+      }
+    }
+
+    let hasEnd = false
+    for (let coordinate of edge.geometry.paths[0]) {
+      if (Terraformer.Tools.coordinatesEqual(coordinate, endXY)) {
+        console.log('ACHOU END');
+        console.log(endXY);
+        console.log(coordinate);
+        hasEnd = true
+        break
+      }
+    }
+
+    return hasIni && hasEnd
+
+    // .filter(coordinate => {
+    //   let validation =  Terraformer.Tools.coordinatesEqual(coordinate, iniXY)
+    //
+    //   if (validation) {
+    //     console.log('ACHOU INI');
+    //     console.log(iniXY);
+    //     console.log(coordinate);
+    //   }
+    //
+    //   validation =  Terraformer.Tools.coordinatesEqual(coordinate, endXY)
+    //
+    //   if (validation) {
+    //     console.log('ACHOU END');
+    //     console.log(endXY);
+    //     console.log(coordinate);
+    //   }
+    // })
+
+  })
+
+  console.log(iniXY);
+  console.log(endXY);
+  console.log(line);
+
+}
+
+export default function(graph) {
+  return point => {
+        return fetchVertexesByReference(point, 200)
+          .then(getClosestVertex.bind(this, point))
+          .then(findClosestFacility.bind(this, graph))
+          .then(prepareExpression)
+          .then(fetchVertexesByExpression)
+          .then(fetchEdges)
+          .then(generateRoute)
+  }
+}

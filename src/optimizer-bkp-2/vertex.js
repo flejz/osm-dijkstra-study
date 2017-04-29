@@ -35,6 +35,26 @@ export function fetchVertexesByReference(point, bufferDistance=500) {
   })
 }
 
+export function fetchVertexesByExpression(interop, outFields='Name') {
+
+  console.log('fetch expression');
+
+  let params = {
+    where: interop.expression,
+    outFields: outFields,
+    f: 'json'
+  }
+
+  return req({
+    uri: `${urls.get('vertex')}/query?${qs.stringify(params)}`,
+    json: true
+  }).then(res => {
+
+    interop.destination.route.vertexes = res.features
+    return Promise.resolve(interop)
+  }).catch(Promise.reject)
+}
+
 export function getClosestVertex(point, result) {
 
   return Promise.resolve({
