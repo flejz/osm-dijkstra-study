@@ -5,12 +5,11 @@
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
     <style>
-      /* Always set the map height explicitly to define the size of the div
-       * element that contains the map. */
+
       #map {
         height: 100%;
       }
-      /* Optional: Makes the sample page fill the window. */
+
       html, body {
         height: 100%;
         margin: 0;
@@ -39,7 +38,7 @@
     <div id="map"></div>
     <script>
 
-      var map, geocoder, marker;
+      var map, geocoder, marker, hospital, paths = [];
 
       function setMapOnAll(map) {
         for (var i = 0; i < markers.length; i++) {
@@ -77,8 +76,19 @@
       }
 
       function placeMarker(location) {
+
+        function clearClosestFacility() {
+          if (hospital) {
+            hospital.setMap(null)
+          }
+          for (var path of paths) {
+            path.setMap(null)
+          }
+          paths = []
+        }
+
         if (!!marker) {
-          marker.setMap(null) 
+          marker.setMap(null)
         }
 
         marker = new google.maps.Marker({
@@ -86,11 +96,37 @@
           position: location
         });
         console.log('lat=', location.lat() + '&lon=' + location.lng());
+
+        var url = 'http://localhost:3000/api/fastest?' + 'lat=' + location.lat() + '&lon=' + location.lng()
+
+        $.get(url, function(response, status) {
+
+          clearClosestFacility()
+
+          marker = new google.maps.Marker({
+            map: map,
+            position: response.hospital.latLng
+          });
+
+
+          for (var path of response.paths) {
+            var routeWay = new google.maps.Polyline({
+              map: map,
+              path: path,
+              geodesic: true,
+              strokeColor: '#FF0000',
+              strokeOpacity: 1.0,
+              strokeWeight: 2
+            });
+
+            paths.push(routeWay)
+          }
+        })
       }
 
     </script>
-    <script async defer
-    src="https://maps.googleapis.com/maps/api/js?callback=initMap">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?callback=initMap"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     </script>
   </body>
 </html>

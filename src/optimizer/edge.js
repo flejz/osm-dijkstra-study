@@ -38,8 +38,6 @@ export function fetchEdges(interop) {
     f: 'json'
   }
 
-  console.log(params.where);
-
   return req({
     method: 'POST',
     uri: `${urls.get('edge')}/query?${qs.stringify(params)}`,
@@ -50,5 +48,5 @@ export function fetchEdges(interop) {
     interop.destination.route.edges = edges.features
 
     return Promise.resolve(interop)
-  }).catch(Promise.reject)
+  }).catch(error => Promise.reject(error))
 }

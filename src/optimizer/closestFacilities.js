@@ -29,43 +29,31 @@ function findClosestFacility(graph, interop) {
   return Promise.resolve(interop)
 }
 
-function generateRoute(interop) {
+function prepareResponse(interop) {
 
-  console.log('generating route');
+  console.log('preparing response');
 
-  const way = interop.destination.route.way
-  let edges = interop.destination.route.edges
+  const paths = interop.destination.route.edges.map(feature => {
 
-  let ordered = []
-
-  way.forEach((key) => {
-      var found = false;
-      edges = edges.filter((item) => {
-          if(!found && item.attributes.ST_ID == key) {
-              ordered.push(item);
-              found = true;
-              return false;
-          } else
-              return true;
-      })
-  })
-
-  const route = ordered.reduce((prev, curr, index) => {
-
-    let path = prev.geometry.paths[0].concat(curr.geometry.paths[0])
-
-    return {
-      geometry: {
-        paths: [path]
+    const way = []
+    for (let path of feature.geometry.paths) {
+      for (let [lng, lat] of path) {
+        way.push({lat: lat, lng: lng})
       }
     }
+    return way
   })
 
-  console.log(way);
-  console.log(ordered);
-  console.log(route);
 
-  return Promise.resolve(route)
+  const response = {
+    hospital: {
+      name: interop.destination.hospital.hospital.name,
+      latLng: {lat: interop.destination.hospital.hospital.lat, lng: interop.destination.hospital.hospital.lon}
+    },
+    paths: paths
+  }
+
+  return Promise.resolve(response)
 }
 
 export default function(graph) {
@@ -74,6 +62,6 @@ export default function(graph) {
           .then(getClosestVertex.bind(this, point))
           .then(findClosestFacility.bind(this, graph))
           .then(fetchEdges)
-          .then(generateRoute)
+          .then(prepareResponse)
   }
 }
