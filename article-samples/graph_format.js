@@ -1,0 +1,5 @@
+{
+  "vertex": {
+    "neighbor": cost Number
+  }
+}
