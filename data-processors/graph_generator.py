@@ -8,30 +8,77 @@ arcpy.MakeFeatureLayer_management('vertex', 'vertex_lyr')
 arcpy.MakeFeatureLayer_management('edge', 'edge_lyr')
 
 def get_edges(vertex):
-    arcpy.SelectLayerByLocation_management('edge_lyr', 'INTERSECT', [vertex], selection_type='NEW_SELECTION')
+
+    # Seleciona todoos as arestas que fazem interseccão
+    # com o vértice informado
+    arcpy.SelectLayerByLocation_management(
+        'edge_lyr',
+        'INTERSECT',
+        [vertex],
+        selection_type='NEW_SELECTION')
 
     features = arcpy.SearchCursor('edge_lyr')
 
-    return [(item.getValue('OBJECTID'), item.getValue('SHAPE'), item.getValue('ONEWAY'), item.getValue('Shape_Length'), item.getValue('AVG_SPEED')) for item in features]
+    # Retorna a lista de arestas
+    return [(
+        item.getValue('OBJECTID'),
+        item.getValue('SHAPE'),
+        item.getValue('ONEWAY'),
+        item.getValue('Shape_Length'),
+        item.getValue('AVG_SPEED'))
+        for item in features]
 
 def get_vertex(edge, vertex):
-    arcpy.SelectLayerByLocation_management('vertex_lyr', 'INTERSECT', [edge], selection_type='NEW_SELECTION')
-    arcpy.SelectLayerByAttribute_management('vertex_lyr', 'REMOVE_FROM_SELECTION', '"OBJECTID" = {0}'.format(vertex))
+
+    # Seleciona todos os vértices que fazem intersecção
+    # com a aresta informada
+    arcpy.SelectLayerByLocation_management(
+        'vertex_lyr',
+        'INTERSECT',
+        [edge],
+        selection_type='NEW_SELECTION')
+
+    # Remove da seleção um dos vértices utilizando uma
+    # seleção por atributo
+    arcpy.SelectLayerByAttribute_management(
+        'vertex_lyr',
+        'REMOVE_FROM_SELECTION',
+        '"OBJECTID" = {0}'.format(vertex))
 
     features = arcpy.SearchCursor('vertex_lyr')
 
-    return [(item.getValue('OBJECTID'), item.getValue('SHAPE'), item.getValue('Name')) for item in features]
+    # Retorna a lista de vértices
+    return [(
+        item.getValue('OBJECTID'),
+        item.getValue('SHAPE'),
+        item.getValue('Name'))
+        for item in features]
 
 def can_go_this_way(edge_geometry, edge_way, vertex_geometry):
 
+    # Caso o valor da mão de direção seja B, significa que
+    # a via é de mão dupla (B = both)
     if edge_way == 'B':
         return True
 
+    # Caso não seja de mão dupla, uma análise para identificar
+    # qual a direção da via é necessária
+
+    # Pega os pontos de início e fim da aresta
     edge_first_point = edge_geometry.firstPoint
     edge_last_point = edge_geometry.lastPoint
 
+    # Verifica se o vértice de origem é igual a origem da aresta,
+    # e se a aresta tem a direção FT (From > To), o que significa
+    # que a mão dela é do primeiro para o último ponto, conforme
+    # o sentido de construção da geometria da aresta
     if edge_first_point.equals(vertex_geometry) and edge_way == 'FT':
         return True
+
+    # Verifica se o vértice de origem é igual ao destino da aresta,
+    # e se a aresta tem a direção TF (To > From), o que significa
+    # que a mão dela é do último para o primeiro ponto, conforme
+    # o sentido de construção da geometria da aresta
     elif edge_last_point.equals(vertex_geometry) and edge_way == 'TF':
         return True
 
@@ -43,11 +90,7 @@ vertexes = arcpy.SearchCursor('vertex')
 graph_by_distance = {}
 graph_by_time = {}
 
-c = 0
 for vertex in vertexes:
-    # c +=1
-    # if c > 10:
-    #     break
 
     vertex_geometry = vertex.getValue('SHAPE')
     vertex_oid = vertex.getValue('OBJECTID')
